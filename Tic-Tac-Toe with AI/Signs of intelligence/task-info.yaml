@@ -255,5 +255,9 @@ files:
         TicTacToeTest('tictactoe.tictactoe').run_tests()
   learner_created: false
 feedback_link: https://hyperskill.org/projects/82/stages/455/implement
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations! Continue on <a href="https://hyperskill.org/projects/82/stages/455/implement">JetBrains
+    Academy</a>
+  time: Mon, 27 Jul 2020 11:39:32 UTC
 record: 4
