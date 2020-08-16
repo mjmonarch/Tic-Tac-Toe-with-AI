@@ -7,9 +7,15 @@ files:
     # your code here
   learner_created: false
 feedback_link: https://hyperskill.org/learn/step/9009
-status: Solved
+status: Failed
 feedback:
-  message: <html>Correct solution<br/><br/>Continue on <a href="https://hyperskill.org/learn/step/9009">JetBrains
-    Academy</a></html>
-  time: Sun, 26 Jul 2020 09:03:32 UTC
+  message: |
+    Failed. Runtime error
+
+    Error:
+    Traceback (most recent call last):
+      File "jailed_code", line 12, in <module>
+        print(round(sum(walks.values()) / len(walks)))
+    AttributeError: 'list' object has no attribute 'values'
+  time: Fri, 24 Jul 2020 21:41:05 UTC
 record: -1

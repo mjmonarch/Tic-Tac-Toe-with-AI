@@ -16,6 +16,8 @@ stages:
   step: 7443
 topics:
   0:
+  - title: Errors
+    theory_id: 6052
   - title: Introduction to Python
     theory_id: 5204
   - title: Overview of the basic program
@@ -60,8 +62,6 @@ topics:
     theory_id: 5872
   - title: Program execution
     theory_id: 6047
-  - title: Errors
-    theory_id: 6052
   - title: Comparisons
     theory_id: 5920
   - title: Basic string methods
