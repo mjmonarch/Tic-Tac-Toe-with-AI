@@ -656,28 +656,52 @@ def available_moves(board):
         for j in range(3):
             if board[i][j] == ' ':
                 moves.append([i, j])
+    return moves
 
 
-class HardAI(AI):
-    def minimax(self, board, mark):
-        moves = available_moves(board)
+def minimax(board, mark, state):
 
-        # check for terminal states
-        if self.mark == 'X':
-            opposite_mark = 'O'
-        else:
-            opposite_mark = 'X'
+    # check for terminal states
+    if mark == 'X':
+        opposite_mark = 'O'
+    else:
+        opposite_mark = 'X'
 
-        if finished(self.mark):
+    if state:
+        if finished(mark):
             return 10
         elif finished(opposite_mark):
             return -10
-        elif len(moves) == 0:
+        elif len(available_moves(board)) == 0:
+            return 0
+    else:
+        if finished(mark):
+            return -10
+        elif finished(opposite_mark):
+            return 10
+        elif len(available_moves(board)) == 0:
             return 0
 
-        for move in moves:
-            
+    moves = []
+    i = 0
+    for move in available_moves(board):
+        board[move[0]][move[1]] = mark
+        moves.append([move, minimax(board, opposite_mark, not state)])
+        # moves[i][1] = minimax(board, opposite_mark, not state)
+        board[move[0]][move[1]] = ' '
+        i += 1
 
+    bestMove = [[0, 0], -10000]
+    for move in moves:
+        if move[1] > bestMove[1]:
+            bestMove = move
+
+    return bestMove[0]
+
+
+class HardAI(AI):
+    def make_move(self):
+        self.make_turn(minimax(field, self.mark, True))
 
 
 def draw_field():
@@ -718,7 +742,7 @@ def play(player_1, player_2):
     elif player_1 == 'easy':
         player1 = EasyAI('X')
     elif player_1 == 'medium':
-        player_1 = MediumAI('X')
+        player1 = MediumAI('X')
     else:
         player1 = HardAI('X')
     if player_2 == 'user':
@@ -726,7 +750,7 @@ def play(player_1, player_2):
     elif player_2 == 'easy':
         player2 = EasyAI('O')
     elif player_2 == 'medium':
-        player_2 == MediumAI('O')
+        player2 = MediumAI('O')
     else:
         player2 = HardAI('O')
     for i in range(1, 10):
@@ -742,10 +766,17 @@ def play(player_1, player_2):
                 if finished('X'):
                     print(f"{'X'} wins")
                     break
-            elif player1 == 'medium':
+            elif player_1 == 'medium':
                 print('Making move level "medium"')
                 if not player1.check_rule_1() and not player1.check_rule_2():
                     player1.make_random_move()
+                draw_field()
+                if finished('X'):
+                    print(f"{'X'} wins")
+                    break
+            elif player_1 == 'hard':
+                print('Making move level "hard"')
+                player1.make_move()
                 draw_field()
                 if finished('X'):
                     print(f"{'X'} wins")
@@ -769,20 +800,27 @@ def play(player_1, player_2):
                 if finished('O'):
                     print(f"{'O'} wins")
                     break
-            elif player2 == 'medium':
+            elif player_2 == 'medium':
                 print('Making move level "medium"')
                 if not player2.check_rule_1() and not player2.check_rule_2():
                     player2.make_random_move()
                 draw_field()
-                if finished('X'):
-                    print(f"{'X'} wins")
+                if finished('O'):
+                    print(f"{'O'} wins")
+                    break
+            elif player_2 == 'hard':
+                print('Making move level "hard"')
+                player2.make_move()
+                draw_field()
+                if finished('O'):
+                    print(f"{'O'} wins")
                     break
             else:
                 print('Making move level "easy"')
                 player2.make_random_move()
                 draw_field()
-                if finished('X'):
-                    print(f"{'X'} wins")
+                if finished('O'):
+                    print(f"{'O'} wins")
                     break
     else:
         print("Draw")
@@ -793,7 +831,7 @@ global possible_moves
 
 while True:
     command = input("Input command:").split()
-    possible_players = ['easy', 'medium', 'user']
+    possible_players = ['easy', 'medium', 'user', 'hard']
     if len(command) == 0:
         print("Bad parameters!")
         break
