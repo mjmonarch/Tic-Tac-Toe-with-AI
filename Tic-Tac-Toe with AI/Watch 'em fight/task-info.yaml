@@ -1,6 +1,11 @@
 type: edu
 custom_name: stage3
 files:
+- name: tictactoe/tictactoe.py
+  visible: true
+  text: |
+    # write your code here
+  learner_created: false
 - name: tests.py
   visible: false
   text: |
@@ -241,11 +246,10 @@ files:
     if __name__ == '__main__':
         TicTacToeTest('tictactoe.tictactoe').run_tests()
   learner_created: false
-- name: tictactoe/tictactoe.py
-  visible: true
-  text: |
-    # write your code here
-  learner_created: false
 feedback_link: https://hyperskill.org/projects/82/stages/454/implement
 status: Solved
-record: 5
+feedback:
+  message: Congratulations! Continue on <a href="https://hyperskill.org/projects/82/stages/454/implement">JetBrains
+    Academy</a>
+  time: Sun, 26 Jul 2020 08:36:44 UTC
+record: 3
