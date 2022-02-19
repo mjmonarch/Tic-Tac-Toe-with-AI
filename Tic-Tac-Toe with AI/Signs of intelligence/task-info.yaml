@@ -254,7 +254,7 @@ files:
     if __name__ == '__main__':
         TicTacToeTest('tictactoe.tictactoe').run_tests()
   learner_created: false
-feedback_link: https://hyperskill.org/projects/82/stages/455/implement
+feedback_link: https://hyperskill.org/learn/step/7442#comment
 status: Solved
 feedback:
   message: Congratulations! Continue on <a href="https://hyperskill.org/projects/82/stages/455/implement">JetBrains

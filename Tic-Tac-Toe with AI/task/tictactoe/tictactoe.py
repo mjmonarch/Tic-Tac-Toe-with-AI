@@ -533,9 +533,9 @@ class Player:
     def __init__(self, mark):
         self.mark = mark
 
-    def make_turn(self, coordinates):
-        field[3 - int(coordinates[1])][int(coordinates[0]) - 1] = self.mark
-        possible_moves.remove([int(coordinates[0]), int(coordinates[1])])
+    def make_turn(self, coordinate):
+        field[coordinate] = self.mark
+        possible_moves.remove(coordinate)
 
 
 class User(Player):
@@ -553,110 +553,131 @@ class EasyAI(AI):
 
 
 class MediumAI(AI):
-    # check rule 1 - if can win in 1 move
+    # check rule 1 - if you can win in 1 move
     def check_rule_1(self):
         # check diagonal from left upper to right bottom
-        if field[0][0] == field[1][1] == self.mark:
-            self.make_turn([3, 1])
+        if field[2] == ' ' and field[6] == field[4] == self.mark:
+            self.make_turn(2)
             return True
-        if field[0][0] == field[2][2] == self.mark:
-            self.make_turn([2, 2])
+        if field[4] == ' ' and field[6] == field[2] == self.mark:
+            self.make_turn(4)
             return True
-        if field[1][1] == field[2][2] == self.mark:
-            self.make_turn([1, 3])
+        if field[6] == ' ' and field[2] == field[4] == self.mark:
+            self.make_turn(6)
             return True
         # check diagonal from left bottom to right upper
-        if field[2][0] == field[1][1] == self.mark:
-            self.make_turn([3, 3])
+        if field[8] == ' ' and field[0] == field[4] == self.mark:
+            self.make_turn(8)
             return True
-        if field[1][1] == field[0][2] == self.mark:
-            self.make_turn([1, 1])
+        if field[0] == ' ' and field[4] == field[8] == self.mark:
+            self.make_turn(0)
             return True
-        if field[2][0] == field[0][2] == self.mark:
-            self.make_turn([2, 2])
+        if field[4] == ' ' and field[0] == field[8] == self.mark:
+            self.make_turn(4)
             return True
         # check rows
         for i in range(3):
-            if field[i][0] == field[i][2] == self.mark:
-                self.make_turn([2, 3 - i])
+            if field[i * 3 + 2] == ' ' and field[i * 3] == field[i * 3 + 1] == self.mark:
+                self.make_turn(i * 3 + 2)
                 return True
-            if field[i][0] == field[i][1] == self.mark:
-                self.make_turn([3, 3 - i])
+            if field[i * 3] == ' ' and field[i * 3 + 1] == field[i * 3 + 2] == self.mark:
+                self.make_turn(i * 3)
                 return True
-            if field[i][1] == field[i][2] == self.mark:
-                self.make_turn([1, 3 - i])
+            if field[i * 3 + 1] == ' ' and field[i * 3] == field[i * 3 + 2] == self.mark:
+                self.make_turn(i * 3 + 1)
                 return True
         # check columns
         for i in range(3):
-            if field[0][i] == field[2][i] == self.mark:
-                self.make_turn([i + 1, 2])
+            if field[i + 6] == ' ' and field[i] == field[i + 3] == self.mark:
+                self.make_turn(i + 6)
                 return True
-            if field[0][i] == field[1][i] == self.mark:
-                self.make_turn([i + 1, 1])
+            if field[i + 3] == ' ' and field[i] == field[i + 6] == self.mark:
+                self.make_turn(i + 3)
                 return True
-            if field[1][i] == field[2][i] == self.mark:
-                self.make_turn([i + 1, 3])
+            if field[i] == ' ' and field[i + 3] == field[i + 3] == self.mark:
+                self.make_turn(i)
                 return True
         return False
 
-    # check rule 2 - if can lose in 1 move
+    # check rule 2 - if you can lose in 1 move
     def check_rule_2(self):
         if self.mark == 'X':
             opposite_mark = 'O'
         else:
             opposite_mark = 'X'
         # check diagonal from left upper to right bottom
-        if field[0][0] == field[1][1] == opposite_mark:
-            self.make_turn([3, 1])
+        if field[2] == ' ' and field[6] == field[4] == opposite_mark:
+            self.make_turn(2)
             return True
-        if field[0][0] == field[2][2] == opposite_mark:
-            self.make_turn([2, 2])
+        if field[4] == ' ' and field[6] == field[2] == opposite_mark:
+            self.make_turn(4)
             return True
-        if field[1][1] == field[2][2] == opposite_mark:
-            self.make_turn([1, 3])
+        if field[6] == ' ' and field[2] == field[4] == opposite_mark:
+            self.make_turn(6)
             return True
         # check diagonal from left bottom to right upper
-        if field[2][0] == field[1][1] == opposite_mark:
-            self.make_turn([3, 3])
+        if field[8] == ' ' and field[0] == field[4] == opposite_mark:
+            self.make_turn(8)
             return True
-        if field[1][1] == field[0][2] == opposite_mark:
-            self.make_turn([1, 1])
+        if field[0] == ' ' and field[4] == field[8] == opposite_mark:
+            self.make_turn(0)
             return True
-        if field[2][0] == field[0][2] == opposite_mark:
-            self.make_turn([2, 2])
+        if field[4] == ' ' and field[0] == field[8] == opposite_mark:
+            self.make_turn(4)
             return True
         # check rows
         for i in range(3):
-            if field[i][0] == field[i][2] == opposite_mark:
-                self.make_turn([2, 3 - i])
+            if field[i * 3 + 2] == ' ' and field[i * 3] == field[i * 3 + 1] == opposite_mark:
+                self.make_turn(i * 3 + 2)
                 return True
-            if field[i][0] == field[i][1] == opposite_mark:
-                self.make_turn([3, 3 - i])
+            if field[i * 3] == ' ' and field[i * 3 + 1] == field[i * 3 + 2] == opposite_mark:
+                self.make_turn(i * 3)
                 return True
-            if field[i][1] == field[i][2] == opposite_mark:
-                self.make_turn([1, 3 - i])
+            if field[i * 3 + 1] == ' ' and field[i * 3] == field[i * 3 + 2] == opposite_mark:
+                self.make_turn(i * 3 + 1)
                 return True
         # check columns
         for i in range(3):
-            if field[0][i] == field[2][i] == opposite_mark:
-                self.make_turn([i + 1, 2])
+            if field[i + 6] == ' ' and field[i] == field[i + 3] == opposite_mark:
+                self.make_turn(i + 6)
                 return True
-            if field[0][i] == field[1][i] == opposite_mark:
-                self.make_turn([i + 1, 1])
+            if field[i + 3] == ' ' and field[i] == field[i + 6] == opposite_mark:
+                self.make_turn(i + 3)
                 return True
-            if field[1][i] == field[2][i] == opposite_mark:
-                self.make_turn([i + 1, 3])
+            if field[i] == ' ' and field[i + 3] == field[i + 3] == opposite_mark:
+                self.make_turn(i)
                 return True
         return False
 
 
 def available_moves(board):
     moves = []
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == ' ':
-                moves.append([i, j])
+    for i in range(9):
+        if board[i] == ' ':
+            moves.append(i)
     return moves
+
+
+def choose_move(board, mark, state):
+    # check for terminal states
+    if mark == 'X':
+        opposite_mark = 'O'
+    else:
+        opposite_mark = 'X'
+
+    moves = []
+
+    for move in available_moves(board):
+        board[move] = mark
+        moves.append([move, minimax(board, opposite_mark, not state)])
+        board[move] = ' '
+
+    bestMove = [0, -10000]
+    for move in moves:
+        if move[1] > bestMove[1]:
+            bestMove = move
+
+    return bestMove[0]
 
 
 def minimax(board, mark, state):
@@ -683,31 +704,36 @@ def minimax(board, mark, state):
             return 0
 
     moves = []
-    i = 0
+
     for move in available_moves(board):
-        board[move[0]][move[1]] = mark
+        board[move] = mark
         moves.append([move, minimax(board, opposite_mark, not state)])
         # moves[i][1] = minimax(board, opposite_mark, not state)
-        board[move[0]][move[1]] = ' '
-        i += 1
+        board[move] = ' '
 
-    bestMove = [[0, 0], -10000]
-    for move in moves:
-        if move[1] > bestMove[1]:
-            bestMove = move
+    if state:
+        bestMove = [0, -10000]
+        for move in moves:
+            if move[1] > bestMove[1]:
+                bestMove = move
+    else:
+        bestMove = [0, 10000]
+        for move in moves:
+            if move[1] < bestMove[1]:
+                bestMove = move
 
-    return bestMove[0]
+    return bestMove[1]
 
 
 class HardAI(AI):
     def make_move(self):
-        self.make_turn(minimax(field, self.mark, True))
+        self.make_turn(choose_move(field, self.mark, True))
 
 
 def draw_field():
     output = "---------\n"
     for i in range(0, 3):
-        output += f"| {field[i][0]} {field[i][1]} {field[i][2]} |\n"
+        output += f"| {field[(2 - i) * 3]} {field[(2 - i) * 3 + 1]} {field[(2 - i) * 3 + 2]} |\n"
     output += "---------"
     print(output)
 
@@ -722,21 +748,22 @@ def check_input(coordinates):
         if coordinate <= 0 or coordinate > 3:
             print("Coordinates should be from 1 to 3!")
             return False
-    if field[3 - coordinates[1]][coordinates[0] - 1] != ' ':
+    if field[(3 - coordinates[0]) * 3 + coordinates[1] - 1] != ' ':
         print("This cell is occupied! Choose another one!")
+        # draw_field()
         return False
     return True
 
 
 def finished(x):
-    result = [field[0][0] == field[1][1] == field[2][2] == x, field[2][0] == field[1][1] == field[0][2] == x]
-    result.extend([field[j][0] == field[j][1] == field[j][2] == x for j in range(0, 3)])
-    result.extend([field[0][j] == field[1][j] == field[2][j] == x for j in range(0, 3)])
+    result = [field[0] == field[4] == field[8] == x, field[6] == field[4] == field[2] == x]
+    result.extend([field[i * 3] == field[i * 3 + 1] == field[i * 3 + 2] == x for i in range(0, 3)])
+    result.extend([field[i] == field[i + 3] == field[i + 6] == x for i in range(0, 3)])
     return any(result)
 
 
 def play(player_1, player_2):
-    draw_field()
+    # draw_field()
     if player_1 == 'user':
         player1 = User('X')
     elif player_1 == 'easy':
@@ -756,12 +783,15 @@ def play(player_1, player_2):
     for i in range(1, 10):
         if i % 2:
             if player_1 == 'user':
+                if i == 1:
+                    draw_field()
                 x_coordinates = input("Enter the coordinates: ").split()
                 while True:
                     if check_input(x_coordinates):
                         break
                     x_coordinates = input("Enter the coordinates: ").split()
-                player1.make_turn(x_coordinates)
+                x_coordinates = [int(x) for x in x_coordinates]
+                player1.make_turn((3 - x_coordinates[0]) * 3 + x_coordinates[1] - 1)
                 draw_field()
                 if finished('X'):
                     print(f"{'X'} wins")
@@ -795,7 +825,8 @@ def play(player_1, player_2):
                     if check_input(y_coordinates):
                         break
                     y_coordinates = input("Enter the coordinates: ").split()
-                player2.make_turn(y_coordinates)
+                y_coordinates = [int(x) for x in y_coordinates]
+                player2.make_turn((3 - y_coordinates[0]) * 3 + y_coordinates[1] - 1)
                 draw_field()
                 if finished('O'):
                     print(f"{'O'} wins")
@@ -842,7 +873,7 @@ while True:
         print("Bad parameters!")
     else:
         # initializing field
-        field = [[' ' for x in range(3)] for y in range(3)]
+        field = [' ' for x in range(9)]
         # initializing possible moves for AI
-        possible_moves = [[i, j] for i in range(1, 4) for j in range(1, 4)]
+        possible_moves = [i for i in range(0, 9)]
         play(command[1], command[2])

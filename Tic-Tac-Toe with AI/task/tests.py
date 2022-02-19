@@ -1,351 +1,332 @@
-import random
-from copy import deepcopy
-from enum import Enum
+from copy import copy
 
-from hstest.stage_test import *
-from hstest.test_case import TestCase
+from hstest import StageTest, dynamic_test, TestedProgram, CheckResult
 
-CheckResult.correct = lambda: CheckResult(True, '')
-CheckResult.wrong = lambda feedback: CheckResult(False, feedback)
+from util.enum import GameState, CellState
+from util.grid import Grid
+from util.minimax import Minimax
 
 
-class FieldState(Enum):
-    X = 'X'
-    O = 'O'
-    FREE = ' '
+class Test:
+    def __init__(self, inp, result, state, additional_contains=None):
+        self.inp = inp
+        self.result = result
+        self.state = state
+        self.additional_contains = additional_contains
 
 
-def get_state(symbol):
-    if symbol == 'X':
-        return FieldState.X
-    elif symbol == 'O':
-        return FieldState.O
-    elif symbol == ' ' or symbol == '_':
-        return FieldState.FREE
-    else:
-        return None
+class TicTacToeTests(StageTest):
+    easy_ai_moves = [0 for _ in range(9)]
 
+    @dynamic_test(order=1)
+    def test_bad_parameters(self):
+        program = TestedProgram()
+        program.start()
 
-def state2char(state):
-    if state == FieldState.X:
-        return "X"
-    if state == FieldState.O:
-        return "O"
-    if state == FieldState.FREE:
-        return "_"
-    else:
-        return None
+        output = program.execute("start")
 
+        if "bad parameters" not in output.lower():
+            return CheckResult.wrong("After entering start command with wrong parameters you should print "
+                                     "'Bad parameters!' and ask to enter a command again!")
 
-class TicTacToeField:
+        output = program.execute("start easy")
 
-    def __init__(self, *, field: str = '', constructed=None):
+        if "bad parameters" not in output.lower():
+            return CheckResult.wrong("After entering start command with wrong parameters you should print "
+                                     "'Bad parameters!' and ask to enter a command again!")
 
-        if constructed is not None:
-            self.field = deepcopy(constructed)
+        program.execute("exit")
 
-        else:
-            self.field: List[List[Optional[FieldState]]] = [
-                [None for _ in range(3)] for _ in range(3)
-            ]
+        if not program.is_finished():
+            return CheckResult.wrong("After entering 'exit' command you should stop the program!")
 
-            field = field.replace("\"", "")
-
-            for row in range(3):
-                for col in range(3):
-                    index = (2 - row) * 3 + col
-                    self.field[row][col] = get_state(field[index])
-
-    def equal_to(self, other) -> bool:
-        for i in range(3):
-            for j in range(3):
-                if self.field[i][j] != other.field[i][j]:
-                    return False
-        return True
-
-    def has_next_as(self, other) -> bool:
-        improved: bool = False
-        for i in range(3):
-            for j in range(3):
-                if self.field[i][j] != other.field[i][j]:
-                    if self.field[i][j] == FieldState.FREE and not improved:
-                        improved = True
-                    else:
-                        return False
-        return improved
-
-    def differ_by_one(self, other) -> bool:
-        have_single_difference = False
-        for i in range(3):
-            for j in range(3):
-                if self.field[i][j] != other.field[i][j]:
-                    if have_single_difference:
-                        return False
-                    have_single_difference = True
-        return have_single_difference
-
-    def is_close_to(self, other) -> bool:
-        return (
-                self.equal_to(other)
-                or self.has_next_as(other)
-                or other.has_next_as(self)
-        )
-
-    @staticmethod
-    def parse(field_str: str):
-
-        lines = field_str.splitlines()
-        lines = [i.strip() for i in lines]
-        lines = [i for i in lines if
-                 i.startswith('|') and i.endswith('|')]
-
-        for line in lines:
-            if len(line) != 9:
-                raise WrongAnswerException(
-                    f"Line of Tic-Tac-Toe field should be 9 characters long\n"
-                    f"found {len(line)} characters in \"{line}\"")
-            for c in line:
-                if c not in 'XO|_ ':
-                    return None
-
-        field: List[List[Optional[FieldState]]] = [
-            [None for _ in range(3)] for _ in range(3)
-        ]
-
-        y: int = 0
-
-        for line in lines:
-            cols = line[2], line[4], line[6]
-            x: int = 0
-            for c in cols:
-                state = get_state(c)
-                if state is None:
-                    return None
-                field[y][x] = state
-                x += 1
-            y += 1
-
-        return TicTacToeField(constructed=field)
-
-    @staticmethod
-    def parse_all(output: str):
-        fields = []
-
-        lines = output.splitlines()
-        lines = [i.strip() for i in lines]
-        lines = [i for i in lines if len(i) > 0]
-
-        candidate_field = ''
-        inside_field = False
-        for line in lines:
-            if '----' in line and not inside_field:
-                inside_field = True
-                candidate_field = ''
-            elif '----' in line and inside_field:
-                field = TicTacToeField.parse(candidate_field)
-                if field is not None:
-                    fields += [field]
-                inside_field = False
-
-            if inside_field and line.startswith('|'):
-                candidate_field += line + '\n'
-
-        return fields
-
-
-inputs = [
-    "1 1", "1 2", "1 3",
-    "2 1", "2 2", "2 3",
-    "3 1", "3 2", "3 3"
-]
-
-
-def iterate_cells(initial: str) -> str:
-    index: int = -1
-    for i in range(len(inputs)):
-        if initial == inputs[i]:
-            index = i
-            break
-
-    if index == -1:
-        return ''
-
-    full_input: str = ''
-    for i in range(index, index + 9):
-        full_input += inputs[i % len(inputs)] + '\n'
-
-    return full_input
-
-
-class TicTacToeTest(StageTest):
-    win = 0
-    draw = 0
-    turn = 0
-    manual_test_turns = [None, [0, 0], [1, 2], [1, 0], [2, 2], [2, 0]]
-
-    def generate(self) -> List[TestCase]:
-        return [TestCase(stdin=(["start easy easy", "2 2"] + [self.test for _ in range(50)] + ["exit"]),
-                         check_function=self.check_1) for _ in range(50)] + \
-               [TestCase(stdin="exit", check_function=self.final_check_easy)] + \
-               [TestCase(stdin="start easy easy\nexit", check_function=self.auto_test_check),
-                TestCase(stdin=["start user user", self.manual_test_1, self.manual_test_1, self.manual_test_1,
-                                self.manual_test_1, self.manual_test_1, self.manual_test_1_check]),
-                TestCase(stdin=["start user user", "1 1", self.manual_test_2_1, self.manual_test_2_2,
-                                self.manual_test_2_3])] + \
-               [TestCase(stdin=["start medium medium", "2 2"] + [self.test for _ in range(50)] + ["exit"],
-                         check_function=self.check_1) for _ in range(50)] + \
-               [TestCase(stdin="exit", check_function=self.final_check_medium)] + \
-               [TestCase(stdin=["start hard hard", "2 2"] + [self.test for _ in range(50)] + ["exit"],
-                         check_function=self.check_1) for _ in range(50)] + \
-               [TestCase(stdin="exit", check_function=self.final_check_hard)] + \
-               [TestCase(stdin=["start hard medium", "2 2"] + [self.test for _ in range(50)] + ["exit"],
-                         check_function=self.check_1) for _ in range(50)] + \
-               [TestCase(stdin="exit", check_function=self.final_check_hard_vs_medium)]
-
-    # checking overlapping ###################################################
-    def manual_test_2_1(self, output):
-        tic_tac_toe_field: TicTacToeField = TicTacToeField.parse(output)
-        if tic_tac_toe_field is None:
-            return CheckResult.wrong("The game field is incorrect")
-        if not str(tic_tac_toe_field.field[0][0]).lower() == "fieldstate.x":
-            return CheckResult.wrong("The X was placed to a wrong position." +
-                                     "The X symbol was not found (" +
-                                     state2char(tic_tac_toe_field.field[0][0]) + " instead of it).")
-        return "1 1"
-
-    def manual_test_2_2(self, output):
-        if len(output.split("\n")) > 3:
-            return CheckResult.wrong("We placed a symbol to an occupied cell, but your program didn't warned about it.")
-        return "1 2"
-
-    def manual_test_2_3(self, output):
-        tic_tac_toe_field: TicTacToeField = TicTacToeField.parse(output)
-        if tic_tac_toe_field is None:
-            return CheckResult.wrong("The game field is incorrect")
-        if not state2char(tic_tac_toe_field.field[0][0]) == "X":
-            return CheckResult.wrong("The \"O\" symbol overlapped the \"X\" one.")
         return CheckResult.correct()
 
-    # manual testing of the game #############################################
-    def manual_test_1(self, output):
-        if self.manual_test_turns[self.turn] is None:
-            self.turn += 1
-            temp = self.manual_test_turns[self.turn]
-            return str(temp[0] + 1) + " " + str(temp[1] + 1)
+    @dynamic_test(order=2)
+    def test_grid_output(self):
+        program = TestedProgram()
+        program.start()
 
-        fields: List[TicTacToeField] = TicTacToeField.parse_all(output)
+        output = program.execute("start user easy")
 
-        if len(fields) != 1:
-            raise WrongAnswer("Cannot parse output. "
-                              f"Expected 1 grid to be printed, found {len(fields)}")
+        printed_grid = Grid.from_output(output)
+        empty_grid = Grid.from_line("_________")
 
-        field = fields[0]
+        if printed_grid != empty_grid:
+            return CheckResult.wrong(f"After starting the program you should print an empty grid!\n"
+                                     f"Correct empty grid:\n{empty_grid}")
 
-        a, b = self.manual_test_turns[self.turn]
-        if self.turn % 2 == 1:
-            mode = "x"
-        else:
-            mode = "o"
+        if "enter the coordinates:" not in output.lower():
+            return CheckResult.wrong("After printing an empty grid you should ask to enter cell coordinates!")
 
-        if field is None:
-            return CheckResult.wrong("The game field is incorrect")
+        output = program.execute("2 2")
 
-        if not str(field.field[a][b]).lower() == "fieldstate." + mode:
-            return CheckResult.wrong("The " + mode.upper() + " was placed to a wrong position." +
-                                     "The " + mode.upper() + " symbol was not found (" +
-                                     state2char(field.field[a][b]) + " instead of it).")
+        grid_after_move = Grid.from_output(output)
+        correct_grid_after_move = Grid.from_line("____X____")
 
-        self.turn += 1
-        temp = self.manual_test_turns[self.turn]
-        return str(temp[0] + 1) + " " + str(temp[1] + 1)
+        if grid_after_move != correct_grid_after_move:
+            return CheckResult.wrong(f"After making the move wrong grid was printed.\n"
+                                     f"Your grid:\n{grid_after_move}\n"
+                                     f"Correct grid:\n{correct_grid_after_move}")
 
-    def manual_test_1_check(self, output: str):
-        if not "wins" in output.lower() or not "x" in output.lower():
-            return CheckResult.wrong("A win message was expected, but the game didn't stop.")
+        if "making move level \"easy\"" not in output.lower().replace("'", "\""):
+            return CheckResult.wrong("After entering a cell coordinates you should print:\n"
+                                     "Making move level \"easy\"")
+
+        grid_after_ai_move = Grid.from_output(output, 2)
+
+        if grid_after_ai_move == grid_after_move:
+            return CheckResult.wrong("After AI move grid wasn't changed!")
+
+        game_grid = grid_after_ai_move
+
+        while True:
+            game_state = game_grid.get_game_state()
+            if game_grid.get_game_state() != GameState.NOT_FINISHED:
+                if game_state == GameState.X_WIN and "X wins" not in output:
+                    return CheckResult.wrong("You should print 'X wins' if X win the game!")
+                if game_state == GameState.O_WIN and "O wins" not in output:
+                    return CheckResult.wrong("You should print 'O wins' if O win the game!")
+                if game_state == GameState.DRAW and "Draw" not in output:
+                    return CheckResult.wrong("You should print 'Draw' if the game ends with draw!")
+                break
+
+            next_move = Minimax.get_move(game_grid, CellState.X)
+            temp_grid = copy(game_grid)
+
+            temp_grid.set_cell(next_move.x, next_move.y, CellState.X)
+
+            output = program.execute(f"{next_move.x + 1} {next_move.y + 1}")
+
+            game_grid = Grid.from_output(output)
+
+            if game_grid != temp_grid:
+                return CheckResult.wrong(f"After making move ({next_move}) the grid is wrong!\n"
+                                         f"Your grid:\n{game_grid}\n"
+                                         f"Correct grid:\n{temp_grid}")
+
+            if game_grid.get_game_state() != GameState.NOT_FINISHED:
+                continue
+
+            game_grid = Grid.from_output(output, 2)
+
         return CheckResult.correct()
 
-    def check(self, reply, attach):
-        return CheckResult.wrong('You finished the program too early, input request was expected')
+    @dynamic_test(repeat=100, order=3)
+    def check_easy_ai(self):
 
-    ##########################################################################
+        program = TestedProgram()
+        program.start()
 
-    # input util the finish
-    def test(self, output):
-        index = random.randint(0, len(inputs) - 1)
-        return inputs[index]
+        program.execute("start user easy")
 
-    # winnings counters
-    # easy
-    def check_1(self, reply: str, attach):
-        if "x wins" in reply.lower():
-            self.win += 1
-        elif "draw" in reply.lower():
-            self.draw += 1
+        output = program.execute("2 2")
+
+        grid_after_ai_move = Grid.from_output(output, 2)
+
+        cells = grid_after_ai_move.get_grid()
+
+        for i in range(9):
+            if i == 4:
+                continue
+
+            if cells[int(i / 3)][i % 3] == CellState.O:
+                self.easy_ai_moves[i] += 1
+
         return CheckResult.correct()
 
-    # check the percentage of winnings
-    def final_check_easy(self, reply, attach):
-        if self.win > 13:
-            self.win = 0
-            self.draw = 0
-            self.turn = 0
+    @dynamic_test(order=4)
+    def check_random(self):
+
+        average_score = 0
+
+        for i in range(len(self.easy_ai_moves)):
+            average_score += (i + 1) * self.easy_ai_moves[i]
+
+        average_score /= 8
+
+        expected_value = (1 + 2 + 3 + 4 + 6 + 7 + 8 + 9) * 100 / 8 / 8
+
+        if abs(average_score - expected_value) > 20:
+            return CheckResult.wrong("Looks like your Easy level AI doesn't make a random move!")
+
+        return CheckResult.correct()
+
+    is_easy_not_moving_like_medium = False
+
+    @dynamic_test(repeat=30, order=5)
+    def check_easy_not_moving_like_medium(self):
+
+        if self.is_easy_not_moving_like_medium:
             return CheckResult.correct()
-        else:
-            return CheckResult.wrong("The difficulty of your easy AI is too high. " +
-                                     "Make it easier.\n"
-                                     "If you are sure the AI difficulty is fine, try to rerun the test.")
 
-    def final_check_medium(self, reply, attach):
-        if self.win > 10:
-            self.win = 0
-            self.draw = 0
-            self.turn = 0
+        program = TestedProgram()
+        program.start()
+
+        program.execute("start user easy")
+
+        output = program.execute("2 2")
+
+        game_grid = Grid.from_output(output, 2)
+
+        cells = game_grid.get_grid()
+
+        if cells[0][0] == CellState.EMPTY and cells[2][2] == CellState.EMPTY:
+            output = program.execute("1 1")
+            game_grid = Grid.from_output(output, 2)
+            if game_grid.get_grid()[2][2] == CellState.EMPTY:
+                self.is_easy_not_moving_like_medium = True
+        else:
+            output = program.execute("1 3")
+            game_grid = Grid.from_output(output, 2)
+            if game_grid.get_grid()[2][0] == CellState.EMPTY:
+                self.is_easy_not_moving_like_medium = True
+
+        program.stop()
+
+        return CheckResult.correct()
+
+    @dynamic_test(order=6)
+    def check_easy_not_moving_like_medium_after(self):
+        if not self.is_easy_not_moving_like_medium:
+            return CheckResult.wrong("Looks like your Easy level AI doesn't make a random move!")
+        return CheckResult.correct()
+
+    @dynamic_test(order=7)
+    def check_easy_vs_easy(self):
+
+        program = TestedProgram()
+        program.start()
+
+        output = program.execute("start easy easy")
+
+        grids = Grid.all_grids_from_output(output)
+
+        Grid.check_grid_sequence(grids)
+
+        return CheckResult.correct()
+
+    @dynamic_test(repeat=10, order=8)
+    def check_medium_ai(self):
+
+        program = TestedProgram()
+        program.start()
+        program.execute("start user medium")
+
+        output = program.execute("2 2")
+
+        game_grid = Grid.from_output(output, 2)
+
+        cells = game_grid.get_grid()
+
+        if cells[0][0] == CellState.EMPTY and cells[2][2] == CellState.EMPTY:
+            output = program.execute("1 1")
+            game_grid = Grid.from_output(output, 2)
+            if game_grid.get_grid()[2][2] == CellState.EMPTY:
+                return CheckResult.wrong("Looks like your Medium level AI doesn't make a correct move!")
+        else:
+            output = program.execute("1 3")
+            game_grid = Grid.from_output(output, 2)
+            if game_grid.get_grid()[2][0] == CellState.EMPTY:
+                return CheckResult.wrong("Looks like your Medium level AI doesn't make a correct move!")
+
+        program.stop()
+
+        return CheckResult.correct()
+
+    @dynamic_test(order=9)
+    def check_medium_vs_medium(self):
+
+        program = TestedProgram()
+        program.start()
+
+        output = program.execute("start medium medium")
+
+        grids = Grid.all_grids_from_output(output)
+
+        Grid.check_grid_sequence(grids)
+
+        return CheckResult.correct()
+
+    is_medium_not_moving_like_hard = False
+
+    @dynamic_test(repeat=30, order=10)
+    def check_medium_not_moving_like_hard(self):
+
+        if self.is_medium_not_moving_like_hard:
             return CheckResult.correct()
-        else:
-            return CheckResult.wrong("The difficulty of your medium AI is too high. " +
-                                     "Make it easier.\n"
-                                     "If you are sure the AI difficulty is fine, try to rerun the test.")
 
-    def final_check_hard(self, reply, attach):
-        if self.draw > 40:
-            self.win = 0
-            self.draw = 0
-            self.turn = 0
-            return CheckResult.correct()
-        else:
-            return CheckResult.wrong("The difficulty of your hard AI is too high." +
-                                     "Make it easier.")
+        program = TestedProgram()
+        program.start()
 
-    def final_check_hard_vs_medium(self, reply, attach):
-        if self.win > 12:
-            self.win = 0
-            self.draw = 0
-            self.turn = 0
-            return CheckResult.correct()
-        else:
-            return CheckResult.wrong("The difficulty of your hard AI is too low.")
+        program.execute("start user medium")
 
-    # checking if the game works correctly in ai vs ai mode
-    def auto_test_check(self, reply: str, attach):
-        if "wins" not in reply.lower() and "draw" not in reply.lower():
-            return CheckResult.wrong("The game was not finished (your program did not print the result of the game).")
+        output = program.execute("2 2")
 
-        fields = TicTacToeField.parse_all(reply)
+        user_move_grid = Grid.from_output(output, 1)
+        medium_move_grid = Grid.from_output(output, 2)
 
-        if len(fields) == 0:
-            return CheckResult.wrong("No fields found")
+        medium_move = Grid.get_move(user_move_grid, medium_move_grid)
 
-        for i in range(1, len(fields)):
-            curr: TicTacToeField = fields[i - 1]
-            next: TicTacToeField = fields[i]
+        minimax_correct_positions = Minimax.get_available_positions(user_move_grid, CellState.O)
 
-            if not (curr.equal_to(next) or curr.has_next_as(next)):
-                return CheckResult.wrong("For two fields following each " +
-                                         "other one is not a continuation " +
-                                         "of the other (they differ more than in two places).")
+        if medium_move not in minimax_correct_positions:
+            self.is_medium_not_moving_like_hard = True
+
+        return CheckResult.correct()
+
+    @dynamic_test(order=11)
+    def check_medium_not_moving_like_hard_after(self):
+        if not self.is_medium_not_moving_like_hard:
+            return CheckResult.wrong("Looks like Medium level AI doesn't make a random move!")
+        return CheckResult.correct()
+
+    @dynamic_test(order=12)
+    def check_hard_ai(self):
+
+        program = TestedProgram()
+        program.start()
+
+        output = program.execute("start user hard")
+
+        grid = Grid.from_output(output)
+
+        next_move = Minimax.get_move(grid, CellState.X)
+
+        output = program.execute(f"{next_move.x + 1} {next_move.y + 1}")
+
+        while "win" not in output.lower() and "draw" not in output.lower():
+            grid_after_user_move = Grid.from_output(output)
+            grid_after_ai_move = Grid.from_output(output, 2)
+
+            ai_move = Grid.get_move(grid_after_user_move, grid_after_ai_move)
+
+            correct_minimax_positions = Minimax.get_available_positions(grid_after_user_move, CellState.O)
+
+            if ai_move not in correct_minimax_positions:
+                return CheckResult.wrong("Your minimax algorithm is wrong! It chooses wrong positions to make a move!")
+
+            next_move = Minimax.get_move(grid_after_ai_move, CellState.X)
+
+            output = program.execute(f"{next_move.x + 1}  {next_move.y + 1}")
+
+        return CheckResult.correct()
+
+    @dynamic_test(repeat=5, order=13)
+    def check_hard_vs_hard(self):
+
+        program = TestedProgram()
+        program.start()
+
+        output = program.execute("start hard hard")
+
+        if "draw" not in output.lower():
+            return CheckResult.wrong(
+                "The result of the game between minimax algorithms should be always 'Draw'!\n"
+                "Make sure your output contains 'Draw'.")
 
         return CheckResult.correct()
 
 
 if __name__ == '__main__':
-    TicTacToeTest('tictactoe.tictactoe').run_tests()
+    TicTacToeTests().run_tests()
